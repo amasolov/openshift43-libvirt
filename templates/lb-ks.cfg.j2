@@ -1,0 +1,77 @@
+#version=RHEL8
+ignoredisk --only-use=vda
+# Partition clearing information
+clearpart --none --initlabel
+# Use graphical install
+graphical
+repo --name="AppStream" --baseurl=file:///run/install/repo/AppStream
+# Use CDROM installation media
+cdrom
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts='us'
+# System language
+lang en_US.UTF-8
+
+# Network information
+network  --bootproto=dhcp --device=enp1s0 --activate
+network  --hostname=lb.{{ cluster_name }}.{{ cluster_domain }}
+# Root password
+rootpw --iscrypted $6$EJblBDQRhlzWOOjl$6UNFptxctqNhVU2snF/1ZrRxA8j5dO7jrY.N07L.NaEvlOrwy.vXoektP/LSAYZaB/ufgiLGfsrJlKvCDXw6W1
+# Run the Setup Agent on first boot
+firstboot --enable
+# Do not configure the X Window System
+skipx
+# System services
+# System timezone
+timezone Australia/Sydney --isUtc
+# Disk partitioning information
+autopart --nohome --type=lvm
+services --enabled=haproxy,tftp.service,httpd --disabled=firewalld
+selinux --disabled
+%packages
+@^minimal-environment
+kexec-tools
+haproxy
+telnet
+jq
+mc
+net-tools
+nano
+syslinux-tftpboot
+tftp-server
+httpd
+wget
+tar
+unzip
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
+
+%anaconda
+pwpolicy root --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+pwpolicy user --minlen=6 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+%end
+
+%post
+mkdir -m0700 /root/.ssh/
+
+cat <<EOF >/root/.ssh/authorized_keys
+{{ ssh_pub_key }}
+EOF
+
+### set permissions
+chmod 0600 /root/.ssh/authorized_keys
+
+### fix up selinux context
+restorecon -R /root/.ssh/
+
+systemctl disable firewalld
+systemctl restart haproxy
+
+%end
+
+reboot
+

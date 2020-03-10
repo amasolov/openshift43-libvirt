@@ -1,0 +1,3 @@
+---
+- import_playbook: infrastructure.yaml
+- import_playbook: cluster.yaml

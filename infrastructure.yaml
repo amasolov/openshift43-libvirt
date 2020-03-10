@@ -1,0 +1,133 @@
+---
+- name: prepare infrastructure bits
+  hosts: hypervisor
+
+  gather_facts: no
+
+  vars:
+    packages:
+      - "@Virtualization Host"
+      - "virt-install"
+      - "@python36"
+    enabled_services:
+      - "libvirtd"
+    disabled_services:
+      - "firewalld"
+
+  tasks:
+
+  - name: configure services
+    systemd:
+      name: "{{ item }}"
+      enabled: no
+      state: stopped
+    with_items: "{{ disabled_services }}"      
+    tags:
+      - configuration
+  
+  - systemd:
+      name: "{{ item }}"
+      enabled: yes
+      state: started
+    with_items: "{{ enabled_services }}"
+    tags:
+      - configuration      
+      
+  - name: install packages
+    package:
+      name: "{{ packages }}"
+      state: installed
+    tags:
+      - configuration
+
+  - name: prepare data dir
+    file:
+      path: "{{ data_dir }}"
+      state: directory
+    tags:
+      - configuration    
+
+  - name: check for RHEL installation media
+    stat:
+      path: "{{ data_dir }}/{{ rhel_iso_filename }}"
+    register: rhel_iso_results
+    tags:
+      - configuration       
+  
+  - fail:
+      msg: "Whoops! {{ rhel_iso_filename }} does not exist or not accessible in {{ data_dir }}"
+    when: rhel_iso_results.stat.exists == false or rhel_iso_results.stat.isreg == false
+    tags:
+      - configuration       
+
+  - name: get list of existing VMs and remove if needed
+    virt:
+      command: list_vms
+    register: all_vms
+    tags:
+     - cleanup
+
+  - virt:
+      name: "{{ item }}"
+      state: destroyed
+    with_items: "{{ all_vms.list_vms }}"
+    tags:
+     - cleanup
+
+  - virt:
+      name: "{{ item }}"
+      command: undefine
+    with_items: "{{ all_vms.list_vms }}"
+    tags:
+     - cleanup
+
+  - find:
+      paths: "{{ data_dir }}"
+      patterns: "*.qcow2"
+    register: vm_files_to_delete
+    tags:
+     - cleanup
+
+  - file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ vm_files_to_delete.files }}"
+    tags:
+     - cleanup
+  
+  - name: remove dhcp reservations
+    omapi_host:
+      key_name: "{{ dhcp_key_name }}"
+      key: "{{ dhcp_key_value }}"
+      host: "{{ dhcp_ip }}"
+      macaddr: "{{ item.value.mac }}"
+      state: absent
+    loop: "{{ lookup('dict', nodes) }}"
+    tags:
+      - cleanup
+      - dhcp
+
+  - name: create dhcp reservations
+    omapi_host:
+      key_name: "{{ dhcp_key_name }}"
+      key: "{{ dhcp_key_value }}"
+      host: "{{ dhcp_ip }}"
+      ip: "{{ item.value.ip }}"
+      macaddr: "{{ item.value.mac }}"
+      name: "{{ item.key + '.' + cluster_name + '.' + cluster_domain }}"
+      state: present
+      statements:
+        - filename "lpxelinux.0"
+        - next-server {{ nodes['lb'].ip }}
+        - option host-name "{{ item.key }}.{{ cluster_name }}.{{ cluster_domain }}"
+    loop: "{{ lookup('dict', nodes) }}"
+    tags:
+      - dhcp
+
+  - name: copy lb kickstart file
+    template:
+      src: templates/lb-ks.cfg.j2
+      dest: /tmp/lb-ks.cfg
+    tags:
+      - configuration
+

@@ -1,0 +1,286 @@
+---
+- name: deploy loadbalancer
+  hosts: hypervisor
+  
+  gather_facts: no
+  
+  tasks:
+
+  - name: create lb vm
+    command: virt-install -n "{{ item.key }}.{{ cluster_name }}.{{ cluster_domain }}"
+             --memory 8192
+             --vcpus 2
+             --location "{{ data_dir }}/{{ rhel_iso_filename }}"
+             --os-variant rhel8.1
+             --network type=direct,source=bond0,source_mode=bridge,model=virtio,mac="{{ item.value.mac }}"
+             --graphics vnc
+             --rng /dev/random
+             --virt-type kvm
+             --noautoconsole
+             --disk size=60,path="{{ data_dir }}"/"{{ item.key }}".qcow2
+             --initrd-inject /tmp/lb-ks.cfg
+             --extra-args="ks=file:/lb-ks.cfg console=tty0 console=ttyS0,115200n8"
+             --extra-args ro
+             --wait=-1
+             --autostart
+    loop: "{{ lookup('dict', nodes) }}"
+    when: item.value.role == 'lb'
+
+
+  - name: add lb to the inventory
+    add_host:
+      hostname: lb.{{ cluster_name }}.{{ cluster_domain }}
+      groups:
+      - installer
+      - loadbalancer
+      ansible_user: root 
+      ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    tags:
+      - configuration
+      - pxe
+
+  - pause:
+      minutes: 1
+    tags:
+      - configuration      
+
+
+- name: run installation
+  hosts: installer
+
+  gather_facts: no
+  
+  vars:
+    services_to_restart:
+      - "httpd"
+      - "haproxy"
+
+  tasks:
+  
+  - name: disable firewalld
+    systemd:
+      name: firewalld
+      enabled: no
+      state: stopped
+    tags:
+      - configuration
+
+  - name: prepare installation files
+    file:
+      path: /opt/ocp-install/install
+      state: directory
+    tags:
+      - configuration
+  
+  - file:
+      path: /var/lib/tftpboot/pxelinux.cfg
+      state: directory
+    tags:
+      - configuration
+      - pxe
+
+  - name: download rhcos files
+    get_url:
+      url: "{{ item }}"
+      dest: /var/www/html/
+    with_items: "{{ rhcos_files }}"
+    register: downloaded_rhcos_files
+    tags:
+      - configuration
+      - installation_files
+
+  - name: create pxe config files
+    blockinfile:
+      path: /var/lib/tftpboot/pxelinux.cfg/01-{{ item.value.mac | replace(':','-') | lower }}
+      insertbefore: BOF
+      create: yes
+      marker: "# {mark} === {{ item.value.mac }}"
+      block: |
+        DEFAULT pxeboot
+        TIMEOUT 10
+        PROMPT 0
+        LABEL pxeboot
+        KERNEL  http://{{ nodes['lb'].ip }}:8080/rhcos-4.3.0-x86_64-installer-kernel 
+        APPEND ip=dhcp rd.neednet=1 initrd=http://{{ nodes['lb'].ip }}:8080/rhcos-4.3.0-x86_64-installer-initramfs.img console=tty0 console=ttyS0 coreos.inst=yes coreos.inst.install_dev=vda coreos.inst.image_url=http://{{ nodes['lb'].ip }}:8080/rhcos-4.3.0-x86_64-metal.raw.gz coreos.inst.ignition_url=http://{{ nodes['lb'].ip }}:8080/{{ item.value.role }}.ign
+    loop: "{{ lookup('dict', nodes) }}"
+    tags:
+      - configuration
+      - pxe
+
+  - shell: ln -f /tftpboot/* /var/lib/tftpboot/
+    tags:
+      - configuration
+      - loadbalancer
+      - pxe
+
+  - name: copy haproxy configuration
+    template:
+      src: templates/haproxy.cfg.j2
+      dest: /etc/haproxy/haproxy.cfg
+    tags:
+      - configuration
+      - haproxy
+
+  - shell: sed -i 's/Listen 80/Listen 8080/g' /etc/httpd/conf/httpd.conf
+    tags:
+      - configuration
+
+  - name: restart services 
+    service:
+      name: "{{ item }}"
+      state: restarted
+    with_items: "{{ services_to_restart }}"
+    tags:
+      - configuration
+  
+  - unarchive:
+     src: "{{ item }}"
+     dest: /opt/ocp-install/
+     remote_src: yes
+    with_items: "{{ ocp_installer_files }}"
+    tags:
+      - configuration
+      - loadbalancer
+      - installation_files
+
+  - name: copy installer config
+    template:
+      src: templates/install-config.yaml.j2
+      dest: /opt/ocp-install/install/install-config.yaml      
+    tags:
+      - configuration
+      - install-config
+
+  - shell: /opt/ocp-install/openshift-install create manifests --dir=/opt/ocp-install/install/
+    tags:
+      - configuration
+  - shell: sed -i 's/true/false/g' /opt/ocp-install/install/manifests/cluster-scheduler-02-config.yml
+    tags:
+      - configuration
+  - shell: /opt/ocp-install/openshift-install create ignition-configs --dir=/opt/ocp-install/install/
+    tags:
+      - configuration
+  - shell: cp -r /opt/ocp-install/install/*.ign /var/www/html/
+    tags:
+      - configuration
+  - shell: chmod 644 /var/www/html/*.ign 
+    tags:
+      - configuration
+
+
+- name: deploy bootstrap and masters
+  hosts: hypervisor
+  
+  gather_facts: no
+
+  tasks:
+
+  - name: create bootstrap vm
+    command: virt-install -n {{ item.key }}.{{ cluster_name }}.{{ cluster_domain }}
+             --memory 16384
+             --vcpus 2
+             --os-variant rhel8.1
+             --network type=direct,source=bond0,source_mode=bridge,model=virtio,mac="{{ item.value.mac }}"
+             --graphics vnc
+             --rng /dev/random
+             --virt-type kvm
+             --pxe
+             --noautoconsole
+             --disk size=120,path="{{ data_dir }}"/"{{ item.key }}".qcow2
+             --wait=-1
+             --autostart
+    loop: "{{ lookup('dict', nodes) }}"
+    when: item.value.role == 'bootstrap'
+
+  - name: create master vms
+    command: virt-install -n {{ item.key }}.{{ cluster_name }}.{{ cluster_domain }}
+             --memory 16384
+             --vcpus 4
+             --os-variant rhel8.1
+             --network type=direct,source=bond0,source_mode=bridge,model=virtio,mac="{{ item.value.mac }}"
+             --graphics vnc
+             --rng /dev/random
+             --virt-type kvm
+             --pxe
+             --noautoconsole
+             --disk size=120,path="{{ data_dir }}"/"{{ item.key }}".qcow2
+             --wait=-1
+    loop: "{{ lookup('dict', nodes) }}"
+    when: item.value.role == 'master'
+
+- name: deploy workers
+  hosts: installer
+  
+  gather_facts: no
+
+  tasks:
+  - name: wait for bootstrap to complete
+    shell: /opt/ocp-install/openshift-install --dir=/opt/ocp-install/install wait-for bootstrap-complete --log-level=info
+
+  - lineinfile:
+      state: absent
+      dest: /etc/haproxy/haproxy.cfg
+      regexp: 'bootstrap'
+  
+  - service:
+      name: haproxy
+      state: restarted
+
+- name: delete bootstrap
+  hosts: hypervisor
+
+  gather_facts: no
+
+  tasks:
+
+  - virt:
+      name: "bootstrap.{{ cluster_name }}.{{ cluster_domain }}"
+      state: destroyed
+
+  - pause:
+      minutes: 1
+
+  - name: create worker vms
+    command: virt-install -n {{ item.key }}.{{ cluster_name }}.{{ cluster_domain }}
+             --memory 8192
+             --vcpus 2
+             --os-variant rhel8.1
+             --network type=direct,source=bond0,source_mode=bridge,model=virtio,mac="{{ item.value.mac }}"
+             --graphics vnc
+             --rng /dev/random
+             --virt-type kvm
+             --pxe
+             --noautoconsole
+             --disk size=100,"{{ data_dir }}"/"{{ item.key }}".qcow2
+             --wait=-1
+             --autostart
+    loop: "{{ lookup('dict', nodes) }}"
+    when: item.value.role == 'worker'
+
+- name: approve workers and complete installation
+  hosts: installer
+  tasks:
+
+  - pause:
+      minutes: 6
+  
+  - shell: /opt/ocp-install/oc get csr | grep Pending | cut -f 1 -d ' ' | while read r; do /opt/ocp-install/oc adm certificate approve $r; done
+    environment: 
+      KUBECONFIG: /opt/ocp-install/install/auth/kubeconfig
+  
+  - pause:
+      minutes: 2
+  
+  - shell: /opt/ocp-install/oc get csr | grep Pending | cut -f 1 -d ' ' | while read r; do /opt/ocp-install/oc adm certificate approve $r; done
+    environment: 
+      KUBECONFIG: /opt/ocp-install/install/auth/kubeconfig
+
+  - pause:
+      minutes: 10
+
+  - shell: /opt/ocp-install/oc patch configs.imageregistry.operator.openshift.io cluster --type merge --patch '{"spec":{"storage":{"emptyDir":{}}}}'
+    environment: 
+      KUBECONFIG: /opt/ocp-install/install/auth/kubeconfig
+
+  - name: wait for install to complete
+    shell: /opt/ocp-install/openshift-install --dir=/opt/ocp-install/install wait-for install-complete --log-level=info

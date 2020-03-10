@@ -1,0 +1,52 @@
+---
+
+    data_dir: "/data"
+    rhel_iso_filename: "rhel-8.1-x86_64-dvd.iso"
+    rhcos_files:
+      - "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/latest/rhcos-4.3.0-x86_64-metal.raw.gz"
+      - "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/latest/rhcos-4.3.0-x86_64-installer-kernel"
+      - "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/latest/latest/rhcos-4.3.0-x86_64-installer-initramfs.img"
+    ocp_installer_files:
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-install-linux-4.3.3.tar.gz"
+      - "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.3.3/openshift-client-linux-4.3.3.tar.gz"
+    dhcp_ip: 10.1.10.30
+    dhcp_key_name: omapi_key
+    dhcp_key_value: MnIFmp3lU0gZ58a8apBxASxwXDu/1q+KT2o2ekukyrZe2hfNYsFUHDkBSsekOQNv+E5Iy09hBxASxwXvQm3fHWtE3gWKzLQltA==
+    cluster_name: "ocp"
+    cluster_domain: "example.com"
+    ssh_pub_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDe/hhK6Tx35x5FW1qd+aFDugMcAF1UMcwGn4EtJJh3rTs7likBXmUPrGm0paKq1Bfqw2RYNt262gDgdf1hAZqJMdMcv0FLW7eZJsX0z8k8nX9UaFNBT7vUls/rsWlB5gYnH9SxRlQSh640qQV0E8DEETDR4dSnP+y37Kya4w6QCLRlTdXuFpwmcRT82DfQvafHBrZLumbbzvQH1qv8HZhgNB/m4yjAE4tKbyDjxi0Bfh16oJXcmweXtXv4qlJ5vwY75yfu79AZjJmP5BMlAIk+oHw3VLSWkcbKEvTJlJ2z02TRIwSAnRhIf7ANqhdUAdN amasolov@example.com"
+    secret: '{"auths":{"cloud.openshift.com":{"auth":"b3BlThtYmM5cmF5cnh3em50dDpTV05FRTNZQk0xRDY2U0E3MDZPQjBETVYwQVFRN0laMTBDWTlURVdVNVIyVEwwVVVBV0RLQk9KN1lXVDIyNkgz","email":"amasolov@example.com"},"quay.io":{"auth":"b3BlbnNoaWZ0LXJlbGVjZkbThtYmM5cmF5cnh3em50dDpTV05FRTNZQk0xRDY2U0E3MDZPQjBETVYwQVFRN0laMTBDWTlURVdVNVIyVEwwVVVBV0RLQk9KN1lXVDIyNkgz","email":"amasolov@example.com"},"registry.connect.redhat.com":{"auth":"Nzc2NDMzOHx1aGMtM2lKU1V6VXhNnpkV0lpT2lJd05XUXlNRGRtTkRFMFl6RTBPV0V3WVdZMk56UTNNMlUxTlRKaFpEWXpaaUo5Lmg4MENFc21vV2UzZ3pxQ2ZlcV9jUmxaOHFseXpob3JFZjRGdFgyNDVYV2FfdGJMUnNwcm5sNjRKeEJtUGE1S3J0YjZ1YWVnaHlTMDI2eUIwMkRFc2x5STl4MkJFSzBfeXU5eXo1OTF1emNuZkVwYy0zcEI2YTc1ZENFc1J6Q3ZrREtXbkNTWnpQLVVyMHZDX1JhQ294RDVJUS1Nc0dsOTNYb056Q3J2bVZWYjcyZ2UtLU9hbTdxcVB3TndoRzBpSUdhRkhRR2VraFZXVTdCT1B4M2FVX2F1aE1KSklWdjk2MWEwYkpXOEt0U3BIM0NLeGExTzNESk40WFdUUFNIS0xlUWg3VkdfaUYtTTBqOE5hdEJsX0NjUElzTW9kNHFQM3c1MWo3dVVyTl8xa3R3RndqSFZxVG41bGZFY2g3MVRuZFFQb2Zpc3VRT0MwS09Gc3h5SmFqYnhOMEhCYl9QVVdoTURjRGVRN2lYTnNDcWR0NG5GZGJaMEItd3dxcFpnU1FfYzR2WE5fSVFXUlVXNWV6eTZfaHZRRnF1MkRQWE1XUUNxaEwyZ1lyX0Z2dWdQbFhjOHRISVRpeVVGbTA2UXA2SUlLRVFFX1ZwUURWa2J2OE9zMzEyVXg4bU1MY3ZGQ3NvTzNSLVFpN2k5LXhiX3dDZWVQM0NxbTFhY092RjZ3QURhS01JUzlpemV6MkVzX3hhNXJVOVRmOXlVUEtZdkdfTkRaQVpHRnZIU29MQkZfdDZ3dXNFVzhkQkppM2FtVFBZbVJGekpXT1UzdUhyMi1rR2lTOVFvT1VQM0FzQWRWTWdncTFoRkJJQlJlSHpGTzg4TTFqUG9oVlEybURiOTkwaGdMX09YbWw2NFBtU3NKb2lUYldoREl6VFBqWWJIUFRhdDBkN3hBU2hv","email":"amasolov@redhat.com"},"registry.redhat.io":{"auth":"Nzc2NDMzOHx1aGMtMUZZWk1KY2dyNmRNOE1CQzlSQVlyWFdablR0OmV5SmhiR2NpT2lKU1V6VXhNaUo5LmV5SnpkV0lpT2lJd05XUXlNRGRtTkRFMFl6RTBPV0V3WVdZMk56UTNNMlUxTlRKaFpEWXpaaUo5Lmg4MENFc21vV2UzZ3pxQ2ZlcV9jUmxaOHFseXpob3JFZjRGdFgyNDVYV2FfdGJMUnNwcm5sNjRKeEJtUGE1S3J0YjZ1YWVnaHlTMDI2eUIwMkRFc2x5STl4MkJFSzBfeXU5eXo1OTF1emNuZkVwYy0zcEI2YTc1ZENFc1J6Q3ZrREtXbkNTWnpQLVVyMHZDX1JhQ294RDVJUS1Nc0dsOTNYb056Q3J2bVZWYjcyZ2UtLU9hbTdxcVB3TndoRzBpSUdhRkhRR2VraFZXVTdCT1B4M2FVX2F1aE1KSklWdjk2MWEwYkpXOEt0U3BIM0NLeGExTzNESk40WFdUUFNIS0xlUWg3VkdfaUYtTTBqOE5hdEJsX0NjUElzTW9kNHFQM3c1MWo3dVVyTl8xa3R3RndqSFZxVG41bGZFY2g3MVRuZFFQb2Zpc3VRT0MwS09Gc3h5SmFqYnhOMEhCYl9QVVdoTURjRGVRN2lYTnNDcWR0NG5GZGJaMEItd3dxcFpnU1FfYzR2WE5fSVFXUlVXNWV6eTZfaHZRRnF1MkRQWE1XUUNxaEwyZ1lyX0Z2dWdQbFhjOHRISVRpeVVGbTA2UXA2SUlLRVFFX1ZwUURWa2J2OE9zMzEyVXg4bU1MY3ZGQ3NvTzNSLVFpN2k5LXhiX3dDZWVQM0NxbTFhY092RjZ3QURhS01JUzlpemV6MkVzX3hhNXJVOVRmOXlVUEtZdkdfTkRaQVpHRnZIU29MQkZfdDZ3dXNFVzhkQkppM2FtVFBZbVJGekpXT1UzdUhyMi1rR2lTOVFvT1VQM0FzQWRWTWdncTFoRkJJQlJlSHpGTzg4TTFqUG9oVlEybURiOTkwaGdMX09YbWw2NFBtU3NKb2lUYldoREl6V3hBU2hv","email":"amasolov@example.com"}}}'
+    nodes:
+      lb:
+        ip: 10.1.10.50
+        mac: 52:54:00:e9:a6:d8
+        role: lb
+      bootstrap:
+        ip: 10.1.10.51
+        mac: 52:54:00:80:1e:2d
+        role: bootstrap
+      master1:
+        ip: 10.1.10.52
+        mac: 52:54:00:49:6d:82
+        role: master
+      master2:
+        ip: 10.1.10.53
+        mac: 52:54:00:ba:45:12
+        role: master
+      master3:
+        ip: 10.1.10.54
+        mac: 52:54:00:c9:76:cc
+        role: master
+      worker1:
+        ip: 10.1.10.55
+        mac: 52:54:00:6a:91:23
+        role: worker
+      worker2:
+        ip: 10.1.10.56
+        mac: 52:54:00:f0:6b:b4
+        role: worker
+      worker3:
+        ip: 10.1.10.57
+        mac: 52:54:00:fb:5a:a5
+        role: worker
+

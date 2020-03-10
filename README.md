@@ -31,7 +31,10 @@ This was tested on a Lenovo server with 128Gb RAM and 32 cores.
 
 ## Deployment
 Please be aware that the playbook will *DELETE* all VMs on the hypervisor. 
+
 To start deployment: `ansible-playbook -i inventory site.yaml`
+
+You might need to adjust delays based on your compute power. 
 
 ## User management
 Configuring an HTPasswd identity provider is described here (https://access.redhat.com/documentation/en-us/openshift_container_platform/4.3/html/authentication/configuring-identity-providers#configuring-htpasswd-identity-provider) and can be performed after getting your cluster up and running.

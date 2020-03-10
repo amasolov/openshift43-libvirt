@@ -1,0 +1,88 @@
+global
+    log         127.0.0.1 local2 info
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+defaults
+    timeout connect         5s
+    timeout client          30s
+    timeout server          30s
+    log                     global
+
+# ---------------------------------------------------------------------
+# round robin balancing for OCP Kubernetes API Server
+# ---------------------------------------------------------------------
+ frontend k8s_api
+   bind *:6443
+   mode tcp
+   option tcplog
+   default_backend k8s_api_backend
+ backend k8s_api_backend
+   balance roundrobin
+   mode tcp
+{% for item in nodes %}
+{% if nodes[item].role == 'bootstrap' or nodes[item].role == 'master' %}
+   server {{ item }} {{ item }}.{{ cluster_name }}.{{ cluster_domain }}:6443 check
+{% endif %}
+{% endfor %}
+ #---------------------------------------------------------------------
+ #round robin balancing for OCP Machine Config Server
+ #---------------------------------------------------------------------
+ frontend machine_config
+   bind *:22623
+   mode tcp
+   option tcplog
+   default_backend machine_config_backend
+ backend machine_config_backend
+   balance roundrobin
+   mode tcp
+{% for item in nodes %}
+{% if nodes[item].role == 'bootstrap' or nodes[item].role == 'master' %}
+   server {{ item }} {{ item }}.{{ cluster_name }}.{{ cluster_domain }}:22623 check
+{% endif %}
+{% endfor %}   
+ #---------------------------------------------------------------------
+ #round robin balancing for OCP Ingress Insecure Port
+ #---------------------------------------------------------------------
+ frontend ingress_insecure
+   bind *:80
+   mode tcp
+   option tcplog
+   default_backend ingress_insecure_backend
+ backend ingress_insecure_backend
+   balance roundrobin
+   mode tcp
+{% for item in nodes %}
+{% if nodes[item].role == 'worker' %}
+   server {{ item }} {{ item }}.{{ cluster_name }}.{{ cluster_domain }}:80 check
+{% endif %}
+{% endfor %}
+ #---------------------------------------------------------------------
+ #round robin balancing for OCP Ingress Secure Port
+ #---------------------------------------------------------------------
+ frontend ingress_secure
+   bind *:443
+   mode tcp
+   default_backend ingress_secure_backend
+ backend ingress_secure_backend
+   balance roundrobin
+   mode tcp
+{% for item in nodes %}
+{% if nodes[item].role == 'worker' %}
+   server {{ item }} {{ item }}.{{ cluster_name }}.{{ cluster_domain }}:443 check
+{% endif %}
+{% endfor %}   
+ #---------------------------------------------------------------------
+ #Exposing HAProxy Statistic Page
+ #---------------------------------------------------------------------
+ listen stats
+     mode http
+     bind :32700
+     stats enable
+     stats uri /
+     stats hide-version
+     stats auth admin:password
