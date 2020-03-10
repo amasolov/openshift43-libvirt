@@ -34,10 +34,12 @@ Please be aware that the playbook will *DELETE* all VMs on the hypervisor.
 
 To start deployment: `ansible-playbook -i inventory site.yaml`
 
-You might need to adjust delays based on your compute power. 
+You might need to adjust delays based on your compute power. Please check virt-install commands in the playbooks if you have a different NIC name on your hypervisor. 
 
 ## User management
 Configuring an HTPasswd identity provider is described here (https://access.redhat.com/documentation/en-us/openshift_container_platform/4.3/html/authentication/configuring-identity-providers#configuring-htpasswd-identity-provider) and can be performed after getting your cluster up and running.
 
 ## Accessing the console
-The management console should be available upon succesfull installation: http://console-openshift-console.apps.CLUSTER_NAME.CLUSTER_DOMAIN
+The management console should be available upon succesfull installation: 
+
+http://console-openshift-console.apps.CLUSTER_NAME.CLUSTER_DOMAIN
