@@ -6,7 +6,7 @@ This was tested on a Lenovo server with 128Gb RAM and 32 cores.
 
 ## Assumptions
 - Compute and storage resources
-  - enough RAM to run all masters and workers (3*8+3*16=72Gb RAM)
+  - enough RAM to run all masters and workers (3x8+3x16=72Gb RAM)
   - more details here: https://access.redhat.com/documentation/en-us/openshift_container_platform/4.3/html/installing_on_bare_metal/installing-on-bare-metal#installation-requirements-user-infra_installing-bare-metal
 - DHCP is configured
   - based on dhcpd (https://www.isc.org/dhcp/)
