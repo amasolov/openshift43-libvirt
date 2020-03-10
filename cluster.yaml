@@ -251,7 +251,7 @@
              --virt-type kvm
              --pxe
              --noautoconsole
-             --disk size=100,"{{ data_dir }}"/"{{ item.key }}".qcow2
+             --disk size=100,path="{{ data_dir }}"/"{{ item.key }}".qcow2
              --wait=-1
              --autostart
     loop: "{{ lookup('dict', nodes) }}"
